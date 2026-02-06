@@ -21,7 +21,7 @@ body {
     box-shadow: inset 0 0 25px rgba(0,0,0,0.4);
 }
 
-/* ===== Frente ===== */
+/* Frente */
 .bus-front {
     background: #2f2f2f;
     height: 60px;
@@ -32,10 +32,9 @@ body {
     justify-content: center;
     color: #fff;
     font-weight: bold;
-    letter-spacing: 1px;
 }
 
-/* ===== Cuerpo ===== */
+/* Cuerpo */
 .bus-body {
     display: grid;
     grid-template-columns: 1fr 1fr 40px 1fr 1fr;
@@ -43,12 +42,12 @@ body {
     justify-items: center;
 }
 
-/* ===== Pasillo ===== */
+/* Pasillo */
 .aisle {
     width: 40px;
 }
 
-/* ===== Asiento ===== */
+/* Asiento */
 .seat {
     width: 46px;
     height: 46px;
@@ -59,21 +58,12 @@ body {
     box-shadow:
         inset 0 -5px 0 rgba(0,0,0,0.25),
         0 2px 4px rgba(0,0,0,0.4);
-    transition: transform 0.12s, box-shadow 0.12s;
-}
-
-.seat:hover {
-    transform: translateY(-2px);
-    box-shadow:
-        inset 0 -5px 0 rgba(0,0,0,0.25),
-        0 5px 8px rgba(0,0,0,0.5);
 }
 
 .seat.occupied {
     background: #c62828;
 }
 
-/* respaldo */
 .seat::before {
     content: "";
     position: absolute;
@@ -85,7 +75,6 @@ body {
     border-radius: 6px;
 }
 
-/* número */
 .seat span {
     position: absolute;
     bottom: 4px;
@@ -94,7 +83,7 @@ body {
     color: #fff;
 }
 
-/* ===== Última fila ===== */
+/* Última fila */
 .last-row {
     grid-column: 1 / -1;
     display: grid;
@@ -104,13 +93,12 @@ body {
     margin-top: 10px;
 }
 
-/* ===== Leyenda ===== */
+/* Leyenda */
 .legend {
     margin-top: 15px;
     display: flex;
     justify-content: space-around;
     font-size: 14px;
-    color: #000;
 }
 
 .box {
@@ -123,15 +111,13 @@ body {
 
 .free { background: #4CAF50; }
 .occ { background: #c62828; }
-
 </style>
 </head>
 
 <body>
 
 <div class="bus">
-    <div class="bus-front">AUTOBÚS · CONTROL DE ASIENTOS</div>
-
+    <div class="bus-front">CONTROL DE ASIENTOS</div>
     <div class="bus-body" id="bus"></div>
 
     <div class="legend">
@@ -144,31 +130,50 @@ body {
 const TOTAL_SEATS = 46;
 const bus = document.getElementById("bus");
 
-let occupied = JSON.parse(localStorage.getItem("occupiedSeats")) || [];
+// Objeto: { numeroAsiento: "Nombre" }
+let seatsData = JSON.parse(localStorage.getItem("seatsData")) || {};
 
 function save() {
-    localStorage.setItem("occupiedSeats", JSON.stringify(occupied));
+    localStorage.setItem("seatsData", JSON.stringify(seatsData));
 }
 
-function toggle(seat) {
-    occupied.includes(seat)
-        ? occupied = occupied.filter(s => s !== seat)
-        : occupied.push(seat);
+function handleSeat(seatNumber) {
+    if (!seatsData[seatNumber]) {
+        // Asiento libre
+        const name = prompt(`Asiento ${seatNumber}\n\nIngresa el nombre del pasajero:`);
 
-    save();
-    render();
+        if (name && name.trim() !== "") {
+            seatsData[seatNumber] = name.trim();
+            save();
+            render();
+        }
+    } else {
+        // Asiento ocupado
+        const info = seatsData[seatNumber];
+        const option = confirm(
+            `Asiento ${seatNumber}\n\nOcupado por:\n${info}\n\n¿Deseas liberar este asiento?`
+        );
+
+        if (option) {
+            delete seatsData[seatNumber];
+            save();
+            render();
+        }
+    }
 }
 
 function createSeat(num) {
     const seat = document.createElement("div");
     seat.className = "seat";
-    if (occupied.includes(num)) seat.classList.add("occupied");
+
+    if (seatsData[num]) seat.classList.add("occupied");
 
     const label = document.createElement("span");
     label.textContent = num;
 
     seat.appendChild(label);
-    seat.onclick = () => toggle(num);
+    seat.onclick = () => handleSeat(num);
+
     return seat;
 }
 
@@ -176,14 +181,12 @@ function render() {
     bus.innerHTML = "";
     let seatNum = 1;
 
-    // filas normales (2 + pasillo + 2)
     while (seatNum <= TOTAL_SEATS - 5) {
         for (let i = 0; i < 2; i++) bus.appendChild(createSeat(seatNum++));
         bus.appendChild(document.createElement("div")).className = "aisle";
         for (let i = 0; i < 2; i++) bus.appendChild(createSeat(seatNum++));
     }
 
-    // última fila (5 asientos)
     const lastRow = document.createElement("div");
     lastRow.className = "last-row";
     while (seatNum <= TOTAL_SEATS) {
